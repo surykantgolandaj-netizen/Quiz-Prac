@@ -958,7 +958,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 // ==========================================================================
-// Progressive Web App (PWA) & Device Installation
+// Device-Aware Install: Direct APK Download on Mobile / Desktop Modal
 // ==========================================================================
 const installAppBtn = document.getElementById('installAppBtn');
 const installGuideModal = document.getElementById('installGuideModal');
@@ -969,6 +969,7 @@ const installModalDesc = document.getElementById('installModalDesc');
 const installStepsContainer = document.getElementById('installStepsContainer');
 let deferredPrompt = null;
 
+// Accurately detect mobile phones, tablets, or small touch viewports
 function isMobileDevice() {
     const ua = navigator.userAgent || navigator.vendor || window.opera || '';
     const mobileRegex = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile|tablet/i;
@@ -977,32 +978,20 @@ function isMobileDevice() {
     return mobileRegex.test(ua) || (hasTouch && isSmallScreen);
 }
 
-function isIOS() {
-    const ua = navigator.userAgent || navigator.vendor || window.opera || '';
-    return /iphone|ipad|ipod/i.test(ua);
+// Download QuizStudio.apk directly to the user's device
+function downloadApk() {
+    const link = document.createElement('a');
+    link.href = 'QuizStudio.apk';
+    link.download = 'QuizStudio.apk';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
 
-function isAndroid() {
-    const ua = navigator.userAgent || '';
-    return /android/i.test(ua);
-}
-
-// Register Service Worker for offline capabilities and PWA detection
-if ('serviceWorker' in navigator && (location.protocol === 'http:' || location.protocol === 'https:')) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js', { scope: './' })
-            .then((reg) => console.log('ServiceWorker registered with scope:', reg.scope))
-            .catch((err) => console.warn('ServiceWorker registration error:', err));
-    });
-}
-
-// Capture native PWA install prompt (both mobile Chrome/Samsung Internet and desktop Chrome/Edge)
+// Capture native PWA install prompt on desktop Chrome/Edge
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
-    if (installAppBtn) {
-        installAppBtn.classList.add('ready-to-install');
-    }
 });
 
 window.addEventListener('appinstalled', () => {
@@ -1012,79 +1001,7 @@ window.addEventListener('appinstalled', () => {
     }
 });
 
-function downloadApk() {
-    try {
-        const a = document.createElement('a');
-        a.href = 'QuizStudio.apk';
-        a.download = 'QuizStudio.apk';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-    } catch (e) {}
-}
-
-function populateInstallGuide() {
-    if (!installStepsContainer) return;
-
-    if (isIOS()) {
-        installModalTitle.textContent = 'Install on iPhone / iPad';
-        installModalDesc.textContent = 'Add Quiz Studio directly to your iOS Home Screen with its own app icon and full-screen view:';
-        installStepsContainer.innerHTML = `
-            <div class="install-step-item">
-                <span class="step-num">1</span>
-                <div class="step-desc">Tap the <strong>Share</strong> button <code class="code-pill">⎋</code> in the Safari toolbar at the bottom of your screen.</div>
-            </div>
-            <div class="install-step-item">
-                <span class="step-num">2</span>
-                <div class="step-desc">Scroll down and tap <strong>Add to Home Screen</strong> <code class="code-pill">⊞</code>.</div>
-            </div>
-            <div class="install-step-item">
-                <span class="step-num">3</span>
-                <div class="step-desc">Tap <strong>Add</strong> in the top-right corner. Quiz Studio will appear on your Home Screen as an installed app!</div>
-            </div>
-        `;
-        if (downloadApkFallbackBtn) downloadApkFallbackBtn.style.display = 'none';
-    } else if (isAndroid()) {
-        installModalTitle.textContent = 'Install on Android';
-        installModalDesc.textContent = 'Install Quiz Studio as an app on your Android device (no APK security warnings, instant updates, and offline access):';
-        installStepsContainer.innerHTML = `
-            <div class="install-step-item">
-                <span class="step-num">1</span>
-                <div class="step-desc">In Chrome or Samsung Internet, tap the <strong>⋮ (Menu)</strong> icon in the top-right corner.</div>
-            </div>
-            <div class="install-step-item">
-                <span class="step-num">2</span>
-                <div class="step-desc">Tap <strong>Install app</strong> or <strong>Add to Home screen</strong>.</div>
-            </div>
-            <div class="install-step-item">
-                <span class="step-num">3</span>
-                <div class="step-desc">Tap <strong>Install</strong> to confirm. Quiz Studio will install straight to your app drawer and home screen.</div>
-            </div>
-        `;
-        if (downloadApkFallbackBtn) downloadApkFallbackBtn.style.display = 'inline-flex';
-    } else {
-        installModalTitle.textContent = 'Install on Desktop';
-        installModalDesc.textContent = 'Install Quiz Studio as a standalone desktop application with offline support and a dedicated launch window:';
-        installStepsContainer.innerHTML = `
-            <div class="install-step-item">
-                <span class="step-num">1</span>
-                <div class="step-desc"><strong>Google Chrome:</strong> Click the <strong>Install</strong> icon <code class="code-pill">⊕</code> on the right side of the address bar, or click <strong>⋮ → Cast, save, and share → Install Quiz Studio...</strong></div>
-            </div>
-            <div class="install-step-item">
-                <span class="step-num">2</span>
-                <div class="step-desc"><strong>Microsoft Edge:</strong> Click the <strong>App available</strong> icon <code class="code-pill">⊞</code> in the address bar, or click <strong>… → Apps → Install this site as an app</strong>.</div>
-            </div>
-            <div class="install-step-item">
-                <span class="step-num">3</span>
-                <div class="step-desc"><strong>macOS Safari:</strong> Click <strong>File → Add to Dock...</strong> from the top menu bar to create a standalone Mac app.</div>
-            </div>
-        `;
-        if (downloadApkFallbackBtn) downloadApkFallbackBtn.style.display = 'none';
-    }
-}
-
 function openInstallGuide() {
-    populateInstallGuide();
     if (installGuideModal) {
         installGuideModal.classList.add('open');
         installGuideModal.setAttribute('aria-hidden', 'false');
@@ -1098,18 +1015,23 @@ function closeInstallGuide() {
     }
 }
 
+// Main Install App Button Handler
 if (installAppBtn) {
     installAppBtn.addEventListener('click', async () => {
-        // If native PWA install prompt is available (both Mobile and Desktop Chrome/Edge), trigger it directly!
-        if (deferredPrompt) {
-            deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
-            if (outcome === 'accepted') {
-                deferredPrompt = null;
-            }
+        if (isMobileDevice()) {
+            // MOBILE: Immediately download QuizStudio.apk
+            downloadApk();
         } else {
-            // Otherwise, open the device-tailored step-by-step guidance
-            openInstallGuide();
+            // DESKTOP: Trigger browser install prompt or open guidance modal
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    deferredPrompt = null;
+                }
+            } else {
+                openInstallGuide();
+            }
         }
     });
 }
